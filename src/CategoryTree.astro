@@ -1,0 +1,6 @@
+---
+const {name,childrenByName,counts,href,depth=0}=Astro.props;
+const children=childrenByName[name]??[];
+const sorted=[...children].sort((a,b)=>a.localeCompare(b,'vi'));
+---
+<li>{children.length&&depth<12?<details open={depth===0}><summary><a href={href(name)}>{name}</a> <span class="category-summary">({counts[name]??0} bài, {children.length} thể loại con)</span></summary><ul>{sorted.map(child=><Astro.self name={child} childrenByName={childrenByName} counts={counts} href={href} depth={depth+1}/>)}</ul></details>:<><a href={href(name)}>{name}</a> <span class="category-summary">({counts[name]??0} bài{children.length?', '+children.length+' thể loại con':''})</span></>}</li>
