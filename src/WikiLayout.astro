@@ -4,14 +4,25 @@ const {title,description='',toc=[]}=Astro.props;
 ---
 <!doctype html>
 <html lang="vi">
-<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="description" content={description}/><title>{title} | Philosophia</title></head>
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="description" content={description}/><title>{title} | Philosophia</title>
+<script is:inline>try{const t=localStorage.getItem('philosophia-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t;}catch{}</script></head>
 <body>
 <a class="skip" href="#main">Đến nội dung</a>
-<header class="site-header"><a class="brand" href="/">Philosophia</a><nav aria-label="Điều hướng"><a href="/wiki/">Bài viết</a><a href="/special/">Trang đặc biệt</a></nav><button id="theme" type="button" aria-label="Đổi giao diện">◐</button></header>
-<div class="shell"><aside aria-label="Mục lục"><details open><summary>Nội dung</summary><ul>{toc.map((x)=><li class={'level-'+x.level}><a href={'#'+x.id}>{x.title}</a></li>)}</ul></details></aside><main id="main"><slot/></main></div>
+<header class="site-header">
+<a class="brand" href="/">Philosophia</a>
+<form class="header-search" action="/search/" role="search"><label class="sr-only" for="header-query">Tìm kiếm bài viết</label><input id="header-query" type="search" name="q" placeholder="Tìm kiếm Philosophia" required/><button type="submit">Tìm</button></form>
+<nav aria-label="Điều hướng"><a href="/wiki/">Bài viết</a><a href="/category/">Thể loại</a><a href="/special/">Trang đặc biệt</a></nav>
+<button id="theme" type="button" aria-label="Đổi chế độ sáng tối" title="Đổi chế độ sáng tối">◐</button>
+</header>
+<div class:list={['shell',{'no-toc':!toc.length}]}>{toc.length>0&&<aside aria-label="Mục lục"><details id="wiki-toc"><summary>Nội dung</summary><ul>{toc.map((x)=><li class={'level-'+x.level}><a href={'#'+x.id}>{x.title}</a></li>)}</ul></details></aside>}<main id="main"><slot/></main></div>
 <footer>PhilosophiaAtlas · Bách khoa thư triết học cá nhân · <a href="https://github.com/PhilosophiaAtlas">Mã nguồn</a></footer>
 <script is:inline>
-try{const t=localStorage.getItem('philosophia-theme');if(t)document.documentElement.dataset.theme=t;}catch{}
-document.getElementById('theme')?.addEventListener('click',()=>{const root=document.documentElement;const dark=root.dataset.theme==='dark'||(!root.dataset.theme&&matchMedia('(prefers-color-scheme: dark)').matches);root.dataset.theme=dark?'light':'dark';try{localStorage.setItem('philosophia-theme',root.dataset.theme)}catch{}});
+const root=document.documentElement;
+const theme=document.getElementById('theme');
+function isDark(){return root.dataset.theme==='dark'||(!root.dataset.theme&&matchMedia('(prefers-color-scheme: dark)').matches)}
+function updateTheme(){theme?.setAttribute('aria-pressed',String(isDark()));}
+updateTheme();
+theme?.addEventListener('click',()=>{root.dataset.theme=isDark()?'light':'dark';try{localStorage.setItem('philosophia-theme',root.dataset.theme)}catch{}updateTheme();});
+const toc=document.getElementById('wiki-toc');if(toc&&matchMedia('(min-width: 701px)').matches)toc.open=true;
 </script>
 </body></html>
