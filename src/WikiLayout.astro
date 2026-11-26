@@ -1,12 +1,12 @@
 ---
 import './wiki.css';
-const {title,description='',toc=[]}=Astro.props;
+const {title,description='',toc=[],article=false}=Astro.props;
 ---
 <!doctype html>
 <html lang="vi">
 <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="description" content={description}/><title>{title} | Philosophia</title>
 <script is:inline>try{for(const [k,allowed] of Object.entries({theme:['dark','light'],font:['small','normal','large'],width:['normal','wide']})){const v=localStorage.getItem('philosophia-'+k);if(allowed.includes(v))document.documentElement.dataset[k]=v;}}catch{}</script></head>
-<body>
+<body class:list={[{'article-page':article}]} id="page-top">
 <a class="skip" href="#main">Đến nội dung</a>
 <header class="site-header">
 <details class="wiki-menu"><summary aria-label="Menu chính" title="Menu chính">☰</summary><nav aria-label="Menu chính"><a href="/">Trang chính</a><a href="/wiki/">Tất cả bài viết</a><a href="/category/">Thể loại</a><a href="/special/random/">Bài viết ngẫu nhiên</a><a href="/special/">Trang đặc biệt</a><a href="https://github.com/PhilosophiaAtlas">Về dự án</a></nav></details>
@@ -15,8 +15,9 @@ const {title,description='',toc=[]}=Astro.props;
 <nav aria-label="Điều hướng"><a href="/wiki/">Bài viết</a><a href="/category/">Thể loại</a><a href="/special/">Trang đặc biệt</a></nav>
 <details class="appearance"><summary aria-label="Giao diện và cách đọc" title="Giao diện và cách đọc">Aa</summary><div class="appearance-panel"><strong>Giao diện</strong><fieldset><legend>Màu sắc</legend><label><input type="radio" name="wiki-theme" value="auto"/> Tự động</label><label><input type="radio" name="wiki-theme" value="light"/> Sáng</label><label><input type="radio" name="wiki-theme" value="dark"/> Tối</label></fieldset><fieldset><legend>Cỡ chữ</legend><label><input type="radio" name="wiki-font" value="small"/> Nhỏ</label><label><input type="radio" name="wiki-font" value="normal"/> Tiêu chuẩn</label><label><input type="radio" name="wiki-font" value="large"/> Lớn</label></fieldset><fieldset><legend>Chiều rộng</legend><label><input type="radio" name="wiki-width" value="normal"/> Tiêu chuẩn</label><label><input type="radio" name="wiki-width" value="wide"/> Rộng</label></fieldset><label><input type="checkbox" id="preview-toggle"/> Xem trước liên kết bài viết khi nhấn</label></div></details>
 </header>
-<div class:list={['shell',{'no-toc':!toc.length}]}>{toc.length>0&&<aside aria-label="Mục lục"><details id="wiki-toc"><summary>Nội dung</summary><ul>{toc.map((x)=><li class={'level-'+x.level}><a href={'#'+x.id}>{x.title}</a></li>)}</ul></details></aside>}<main id="main"><slot/></main></div>
+<div class:list={['shell',{'no-toc':!toc.length}]}>{toc.length>0&&<aside aria-label="Mục lục"><details id="wiki-toc"><summary>Nội dung</summary><ul><li><a href="#page-top">Đầu bài</a></li>{toc.map((x)=><li class={'level-'+x.level}><a href={'#'+x.id}>{x.title}</a></li>)}</ul></details></aside>}<main id="main"><slot/></main></div>
 <footer>PhilosophiaAtlas · Bách khoa thư triết học cá nhân · <a href="https://github.com/PhilosophiaAtlas">Mã nguồn</a></footer>
+{article&&<a id="back-to-top" class="back-to-top" href="#page-top" aria-label="Về đầu trang" title="Về đầu trang" hidden>↑</a>}
 <dialog id="wiki-preview" aria-labelledby="preview-title"><form method="dialog"><button class="dialog-close" aria-label="Đóng" autofocus>×</button></form><h2 id="preview-title">Xem trước bài viết</h2><p id="preview-summary" role="status"></p><div class="preview-actions"><button id="preview-dismiss" type="button">Tiếp tục đọc</button><button id="preview-open" type="button">Đọc bài đầy đủ →</button></div></dialog>
 <script is:inline>
 const root=document.documentElement;
@@ -58,4 +59,38 @@ window.addEventListener('pageshow',()=>{dismiss();toggle.checked=read('preview',
 document.addEventListener('click',e=>{for(const item of document.querySelectorAll('.wiki-menu[open],.appearance[open]'))if(!item.contains(e.target))item.open=false;});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')for(const item of document.querySelectorAll('.wiki-menu[open],.appearance[open]')){item.open=false;item.querySelector('summary')?.focus();}});
 </script>
+{article&&<script is:inline>
+(()=>{
+ const article=document.querySelector('main article'),root=document.documentElement,focus=document.getElementById('reading-focus'),collapseAll=document.getElementById('sections-toggle'),top=document.getElementById('back-to-top'),meter=document.getElementById('reading-progress');
+ if(!article||!focus||!collapseAll||!top||!meter)return;
+ const get=(k,d)=>{try{return localStorage.getItem('philosophia-'+k)??d}catch{return d}};
+ const put=(k,v)=>{try{localStorage.setItem('philosophia-'+k,v)}catch{}};
+ const sections=[];
+ // Keep original headings and IDs; collapse only the content of each top-level section.
+ const headings=[...article.children].filter(n=>n.tagName==='H2');
+ for(const [i,h] of headings.entries()){
+   const panel=document.createElement('div');panel.id='wiki-section-content-'+(i+1);panel.className='wiki-section-content';
+   let n=h.nextSibling;while(n&&!(n.nodeType===1&&/^H[12]$/.test(n.tagName))){const next=n.nextSibling;panel.append(n);n=next;}
+   h.after(panel);const button=document.createElement('button');button.type='button';button.className='section-toggle';button.setAttribute('aria-controls',panel.id);
+   const label=h.textContent;button.setAttribute('aria-label','Thu gọn: '+label);button.setAttribute('aria-expanded','true');button.textContent='⌄';h.prepend(button);
+   const item={h,panel,button,label};sections.push(item);
+   button.addEventListener('click',()=>{setOpen(item,panel.hidden);refreshAll();schedule();});
+ }
+ function setOpen(item,open){item.panel.hidden=!open;item.button.setAttribute('aria-expanded',String(open));item.button.setAttribute('aria-label',(open?'Thu gọn: ':'Mở rộng: ')+item.label);item.button.textContent=open?'⌄':'›';}
+ function refreshAll(){collapseAll.hidden=!sections.length;collapseAll.textContent=sections.every(x=>x.panel.hidden)?'Mở rộng tất cả':'Thu gọn tất cả';}
+ collapseAll.addEventListener('click',()=>{const open=sections.every(x=>x.panel.hidden);for(const item of sections)setOpen(item,open);refreshAll();schedule();});
+ function setFocus(on){root.dataset.readingFocus=on?'on':'off';focus.setAttribute('aria-pressed',String(on));focus.textContent=on?'Thoát chế độ tập trung':'Đọc tập trung';schedule();}
+ focus.hidden=false;focus.addEventListener('click',()=>{const on=focus.getAttribute('aria-pressed')!=='true';setFocus(on);put('reading-focus',on?'on':'off');});
+ const links=[...document.querySelectorAll('#wiki-toc a[href^="#"]')];
+ const targets=links.map(a=>({a,node:document.getElementById(a.hash.slice(1))})).filter(x=>x.node);
+ function revealHash(){let id;try{id=decodeURIComponent(location.hash.slice(1))}catch{return}const target=document.getElementById(id);if(!target)return;for(const item of sections)if(item.panel.contains(target)&&item.panel.hidden)setOpen(item,true);refreshAll();if(id)requestAnimationFrame(()=>target.scrollIntoView({block:'start'}));schedule();}
+ for(const a of links)a.addEventListener('click',()=>{const target=document.getElementById(a.hash.slice(1));for(const item of sections)if(item.panel.contains(target))setOpen(item,true);refreshAll();if(matchMedia('(max-width:700px)').matches)document.getElementById('wiki-toc').open=false;schedule();});
+ let pending=false;
+ function update(){pending=false;const y=window.scrollY,max=Math.max(0,document.documentElement.scrollHeight-innerHeight);meter.value=max?Math.min(100,100*y/max):100;top.hidden=y<300;let current=targets[0];for(const x of targets){if(x.node.getClientRects().length&&x.node.getBoundingClientRect().top<=100)current=x;}for(const x of targets){if(x===current)x.a.setAttribute('aria-current','location');else x.a.removeAttribute('aria-current');}}
+ function schedule(){if(!pending){pending=true;requestAnimationFrame(update);}}
+ addEventListener('scroll',schedule,{passive:true});addEventListener('resize',schedule);addEventListener('hashchange',revealHash);
+ top.addEventListener('click',e=>{e.preventDefault();window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});if(location.hash)history.replaceState(null,'',location.pathname+location.search);});
+ meter.hidden=false;refreshAll();setFocus(get('reading-focus','off')==='on');if(location.hash)revealHash();schedule();
+})();
+</script>}
 </body></html>
