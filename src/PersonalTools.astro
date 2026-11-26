@@ -1,0 +1,20 @@
+---
+const {id,title,revision}=Astro.props;
+---
+<div class="personal-tools" data-personal-tools data-id={id} data-title={title} data-revision={revision} data-pagefind-ignore hidden>
+<button type="button" data-library-action="saved" aria-pressed="false">☆ Lưu bài</button>
+<button type="button" data-library-action="watched" aria-pressed="false">Theo dõi</button>
+<a href="/library/">Thư viện của tôi</a>
+<span class="library-status" role="status"></span>
+</div>
+<script>
+import {loadLibrary,toggleEntry,recordVisit} from './library-store.mjs';
+for(const el of document.querySelectorAll('[data-personal-tools]')){
+ const article={id:el.dataset.id,title:el.dataset.title,revision:el.dataset.revision};
+ const status=el.querySelector('.library-status');
+ const render=()=>{try{const s=loadLibrary();for(const button of el.querySelectorAll('[data-library-action]')){const key=button.dataset.libraryAction,on=s[key].some(x=>x.id===article.id);button.setAttribute('aria-pressed',String(on));button.textContent=key==='saved'?(on?'★ Đã lưu':'☆ Lưu bài'):(on?'✓ Đang theo dõi':'Theo dõi');}el.hidden=false;}catch{el.hidden=false;status.textContent='Không đọc được dữ liệu cục bộ.';}};
+ try{recordVisit(article);}catch{status.textContent='Không lưu được lịch sử trên thiết bị.';}
+ for(const button of el.querySelectorAll('[data-library-action]'))button.addEventListener('click',()=>{try{toggleEntry(button.dataset.libraryAction,article);status.textContent='Đã cập nhật thư viện.';render();}catch{status.textContent='Không lưu được thay đổi.';}});
+ window.addEventListener('philosophia-library-change',render);window.addEventListener('storage',render);window.addEventListener('pageshow',render);render();
+}
+</script>
