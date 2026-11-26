@@ -5,24 +5,30 @@ const {title,description='',toc=[]}=Astro.props;
 <!doctype html>
 <html lang="vi">
 <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="description" content={description}/><title>{title} | Philosophia</title>
-<script is:inline>try{const t=localStorage.getItem('philosophia-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t;}catch{}</script></head>
+<script is:inline>try{for(const [k,allowed] of Object.entries({theme:['dark','light'],font:['small','normal','large'],width:['normal','wide']})){const v=localStorage.getItem('philosophia-'+k);if(allowed.includes(v))document.documentElement.dataset[k]=v;}}catch{}</script></head>
 <body>
 <a class="skip" href="#main">Đến nội dung</a>
 <header class="site-header">
+<details class="wiki-menu"><summary aria-label="Menu chính" title="Menu chính">☰</summary><nav aria-label="Menu chính"><a href="/">Trang chính</a><a href="/wiki/">Tất cả bài viết</a><a href="/category/">Thể loại</a><a href="/special/random/">Bài viết ngẫu nhiên</a><a href="/special/">Trang đặc biệt</a><a href="https://github.com/PhilosophiaAtlas">Về dự án</a></nav></details>
 <a class="brand" href="/">Philosophia</a>
 <form class="header-search" action="/search/" role="search"><label class="sr-only" for="header-query">Tìm kiếm bài viết</label><input id="header-query" type="search" name="q" placeholder="Tìm kiếm Philosophia" required/><button type="submit">Tìm</button></form>
 <nav aria-label="Điều hướng"><a href="/wiki/">Bài viết</a><a href="/category/">Thể loại</a><a href="/special/">Trang đặc biệt</a></nav>
-<button id="theme" type="button" aria-label="Đổi chế độ sáng tối" title="Đổi chế độ sáng tối">◐</button>
+<details class="appearance"><summary aria-label="Giao diện và cách đọc" title="Giao diện và cách đọc">Aa</summary><div class="appearance-panel"><strong>Giao diện</strong><fieldset><legend>Màu sắc</legend><label><input type="radio" name="wiki-theme" value="auto"/> Tự động</label><label><input type="radio" name="wiki-theme" value="light"/> Sáng</label><label><input type="radio" name="wiki-theme" value="dark"/> Tối</label></fieldset><fieldset><legend>Cỡ chữ</legend><label><input type="radio" name="wiki-font" value="small"/> Nhỏ</label><label><input type="radio" name="wiki-font" value="normal"/> Tiêu chuẩn</label><label><input type="radio" name="wiki-font" value="large"/> Lớn</label></fieldset><fieldset><legend>Chiều rộng</legend><label><input type="radio" name="wiki-width" value="normal"/> Tiêu chuẩn</label><label><input type="radio" name="wiki-width" value="wide"/> Rộng</label></fieldset><label><input type="checkbox" id="preview-toggle"/> Xem trước liên kết khi nhấn</label></div></details>
 </header>
 <div class:list={['shell',{'no-toc':!toc.length}]}>{toc.length>0&&<aside aria-label="Mục lục"><details id="wiki-toc"><summary>Nội dung</summary><ul>{toc.map((x)=><li class={'level-'+x.level}><a href={'#'+x.id}>{x.title}</a></li>)}</ul></details></aside>}<main id="main"><slot/></main></div>
 <footer>PhilosophiaAtlas · Bách khoa thư triết học cá nhân · <a href="https://github.com/PhilosophiaAtlas">Mã nguồn</a></footer>
+<dialog id="wiki-preview" aria-labelledby="preview-title"><form method="dialog"><button class="dialog-close" aria-label="Đóng">×</button></form><h2 id="preview-title">Xem trước bài viết</h2><p id="preview-summary" role="status"></p><a id="preview-open" href="/wiki/">Đọc bài đầy đủ →</a></dialog>
 <script is:inline>
 const root=document.documentElement;
-const theme=document.getElementById('theme');
-function isDark(){return root.dataset.theme==='dark'||(!root.dataset.theme&&matchMedia('(prefers-color-scheme: dark)').matches)}
-function updateTheme(){theme?.setAttribute('aria-pressed',String(isDark()));}
-updateTheme();
-theme?.addEventListener('click',()=>{root.dataset.theme=isDark()?'light':'dark';try{localStorage.setItem('philosophia-theme',root.dataset.theme)}catch{}updateTheme();});
+const read=(key,fallback)=>{try{return localStorage.getItem('philosophia-'+key)??fallback}catch{return fallback}};
+const write=(key,v)=>{try{localStorage.setItem('philosophia-'+key,v)}catch{}};
+for(const [key,def] of Object.entries({theme:'auto',font:'normal',width:'normal'})){for(const el of document.querySelectorAll('input[name="wiki-'+key+'"]')){el.checked=el.value===read(key,def);el.addEventListener('change',()=>{if(!el.checked)return;if(key==='theme'&&el.value==='auto')delete root.dataset.theme;else root.dataset[key]=el.value;write(key,el.value);});}}
 const toc=document.getElementById('wiki-toc');if(toc&&matchMedia('(min-width: 701px)').matches)toc.open=true;
+const toggle=document.getElementById('preview-toggle');toggle.checked=read('preview','off')==='on';toggle.addEventListener('change',()=>write('preview',toggle.checked?'on':'off'));
+const dialog=document.getElementById('wiki-preview');let sequence=0;
+document.addEventListener('click',async e=>{const a=e.target.closest?.('article a[href]');if(!toggle.checked||!a||e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey||a.target||!dialog.showModal)return;const url=new URL(a.href,location.href);const match=url.pathname.match(/^\/wiki\/([a-z0-9-]+)\/$/);if(url.origin!==location.origin||!match||url.hash)return;e.preventDefault();const id=++sequence;const title=document.getElementById('preview-title'),summary=document.getElementById('preview-summary'),open=document.getElementById('preview-open');title.textContent=a.textContent;summary.textContent='Đang tải…';open.href=url.href;if(!dialog.open)dialog.showModal();try{const response=await fetch('/preview/'+match[1]+'.json');if(!response.ok)throw Error();const data=await response.json();if(id!==sequence||!dialog.open)return;title.textContent=data.title;summary.textContent=data.summary||'Chưa có tóm tắt.';}catch{if(id===sequence&&dialog.open)summary.textContent='Không tải được phần xem trước. Anh có thể mở bài trực tiếp.';}});
+dialog.addEventListener('close',()=>sequence++);
+document.addEventListener('click',e=>{for(const item of document.querySelectorAll('.wiki-menu[open],.appearance[open]'))if(!item.contains(e.target))item.open=false;});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')for(const item of document.querySelectorAll('.wiki-menu[open],.appearance[open]')){item.open=false;item.querySelector('summary')?.focus();}});
 </script>
 </body></html>
