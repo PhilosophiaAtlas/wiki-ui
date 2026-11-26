@@ -31,3 +31,10 @@ export function toggleEntry(key,article){
 }
 export function recordVisit(article){const s=loadLibrary();if(!s.historyEnabled)return s;s.history=[{id:article.id,title:article.title,at:new Date().toISOString()},...s.history.filter(x=>x.id!==article.id)].slice(0,MAX);return saveLibrary(s);}
 export function mergeLibrary(current,incoming){const a=validateLibrary(current),b=validateLibrary(incoming);for(const k of ['saved','watched','history']){const m=new Map(a[k].map(x=>[x.id,x]));for(const x of b[k]){const prev=m.get(x.id);if(!prev||Date.parse(x.at)>Date.parse(prev.at))m.set(x.id,x);}a[k]=[...m.values()].sort((x,y)=>Date.parse(y.at)-Date.parse(x.at)).slice(0,MAX);}return a;}
+
+export function removeEntry(key,id){if(!['saved','watched','history'].includes(key))throw Error('Invalid list');const s=loadLibrary();s[key]=s[key].filter(x=>x.id!==id);return saveLibrary(s);}
+export function setHistoryEnabled(enabled){const s=loadLibrary();s.historyEnabled=Boolean(enabled);return saveLibrary(s);}
+export function clearHistory(){const s=loadLibrary();s.history=[];return saveLibrary(s);}
+export function acknowledgeRevision(article){const s=loadLibrary();s.watched=s.watched.map(x=>x.id===article.id?{...x,title:article.title,revision:article.revision}:x);return saveLibrary(s);}
+export function resetLibrary(){return saveLibrary(emptyLibrary());}
+export function watchStatus(item,current){return !current?'missing':item.revision===current.revision?'current':'changed';}

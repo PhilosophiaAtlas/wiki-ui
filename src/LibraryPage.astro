@@ -1,0 +1,48 @@
+---
+---
+<noscript><p>Thư viện cá nhân cần JavaScript. Các bài viết vẫn đọc được bình thường.</p></noscript>
+<div id="personal-library" hidden data-pagefind-ignore>
+<p>Dữ liệu chỉ lưu trong trình duyệt này, không tự đồng bộ giữa thiết bị. Người dùng chung hồ sơ trình duyệt có thể thấy dữ liệu sau khi đăng nhập.</p>
+<div class="library-tabs" role="group" aria-label="Danh sách cá nhân">
+<button type="button" data-tab="saved" aria-pressed="true">Đã lưu</button>
+<button type="button" data-tab="watched" aria-pressed="false">Theo dõi</button>
+<button type="button" data-tab="history" aria-pressed="false">Lịch sử đọc</button>
+</div>
+<p id="library-count" aria-live="polite"></p>
+<ul class="library-list" id="library-list"></ul>
+<div class="library-actions"><label><input type="checkbox" id="library-history-enabled"/> Ghi lịch sử đọc</label><button type="button" id="library-clear-history">Xóa lịch sử</button></div>
+<h2>Sao lưu dữ liệu</h2>
+<p class="meta">Tệp JSON chứa tên các bài đã lưu, theo dõi và lịch sử đọc. Chỉ chia sẻ khi anh muốn.</p>
+<div class="library-actions"><button type="button" id="library-export">Xuất JSON</button><button type="button" id="library-import">Nhập và hợp nhất JSON</button><input type="file" id="library-file" accept=".json,application/json" hidden/><button type="button" id="library-reset">Xóa toàn bộ dữ liệu</button></div>
+<p id="library-message" role="status"></p>
+</div>
+<script>
+import {loadLibrary,saveLibrary,validateLibrary,mergeLibrary,removeEntry,setHistoryEnabled,clearHistory,acknowledgeRevision,resetLibrary,watchStatus} from './library-store.mjs';
+const root=document.getElementById('personal-library'),list=document.getElementById('library-list'),count=document.getElementById('library-count'),message=document.getElementById('library-message'),history=document.getElementById('library-history-enabled'),file=document.getElementById('library-file');
+let tab='saved',index=null;
+function say(text){message.textContent=text;}
+function act(fn){try{fn();render();}catch{say('Không thể cập nhật dữ liệu cục bộ.');}}
+function button(label,handler){const b=document.createElement('button');b.type='button';b.textContent=label;b.addEventListener('click',handler);return b;}
+function render(){try{
+ const s=loadLibrary();history.checked=s.historyEnabled;
+ for(const b of root.querySelectorAll('[data-tab]'))b.setAttribute('aria-pressed',String(b.dataset.tab===tab));
+ const rows=s[tab];list.replaceChildren();count.textContent=rows.length+' bài';
+ if(!rows.length){const li=document.createElement('li');li.textContent='Chưa có bài viết trong danh sách này.';list.append(li);}
+ for(const row of rows){
+  const current=index?.get(row.id),li=document.createElement('li'),info=document.createElement('div'),a=document.createElement('a'),date=document.createElement('small'),actions=document.createElement('div');li.className='library-row';actions.className='library-row-actions';
+  a.href='/wiki/'+row.id+'/';a.textContent=current?.title??row.title;date.textContent=new Date(row.at).toLocaleString('vi-VN');info.append(a,date);
+  if(tab==='watched'){const status=document.createElement('small');status.className='library-update';const state=index?watchStatus(row,current):'unknown';status.textContent=({unknown:'Chưa xác minh phiên bản',missing:'Bài không còn trong danh mục',current:'Chưa có thay đổi',changed:'Có thay đổi mới'})[state];info.append(status);if(state==='changed')actions.append(button('Đánh dấu đã đọc',()=>act(()=>acknowledgeRevision(current))));}
+  actions.append(button('Bỏ khỏi danh sách',()=>act(()=>removeEntry(tab,row.id))));li.append(info,actions);list.append(li);
+ }
+ }catch{list.replaceChildren();count.textContent='Không đọc được dữ liệu';say('Dữ liệu cục bộ bị lỗi hoặc trình duyệt chặn lưu trữ. Có thể xóa toàn bộ để khôi phục.');}}
+for(const b of root.querySelectorAll('[data-tab]'))b.addEventListener('click',()=>{tab=b.dataset.tab;render();});
+history.addEventListener('change',()=>act(()=>setHistoryEnabled(history.checked)));
+document.getElementById('library-clear-history').addEventListener('click',()=>{if(confirm('Xóa toàn bộ lịch sử đọc?'))act(clearHistory);});
+document.getElementById('library-reset').addEventListener('click',()=>{if(confirm('Xóa toàn bộ bài đã lưu, theo dõi và lịch sử?'))act(resetLibrary);});
+document.getElementById('library-export').addEventListener('click',()=>{try{const blob=new Blob([JSON.stringify(loadLibrary(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='philosophia-library.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);say('Đã tạo tệp sao lưu.');}catch{say('Không xuất được dữ liệu.');}});
+document.getElementById('library-import').addEventListener('click',()=>file.click());
+file.addEventListener('change',async()=>{try{const f=file.files?.[0];if(!f)return;if(f.size>2*1024*1024)throw Error();const data=validateLibrary(JSON.parse(await f.text()));if(confirm('Hợp nhất dữ liệu từ tệp vào thư viện hiện tại?')){saveLibrary(mergeLibrary(loadLibrary(),data));say('Đã hợp nhất dữ liệu.');}}catch{say('Tệp không hợp lệ hoặc vượt giới hạn 2 MB. Dữ liệu hiện tại không bị thay đổi.');}finally{file.value='';render();}});
+window.addEventListener('philosophia-library-change',render);window.addEventListener('storage',render);window.addEventListener('pageshow',render);
+root.hidden=false;render();
+fetch('/library-index.json').then(r=>{if(!r.ok)throw Error();return r.json();}).then(rows=>{index=new Map(rows.map(x=>[x.id,x]));render();}).catch(()=>say('Không tải được danh mục phiên bản; thư viện cục bộ vẫn sử dụng được.'));
+</script>

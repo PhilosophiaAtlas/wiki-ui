@@ -15,6 +15,6 @@ for(const el of document.querySelectorAll('[data-personal-tools]')){
  const render=()=>{try{const s=loadLibrary();for(const button of el.querySelectorAll('[data-library-action]')){const key=button.dataset.libraryAction,on=s[key].some(x=>x.id===article.id);button.setAttribute('aria-pressed',String(on));button.textContent=key==='saved'?(on?'★ Đã lưu':'☆ Lưu bài'):(on?'✓ Đang theo dõi':'Theo dõi');}el.hidden=false;}catch{el.hidden=false;status.textContent='Không đọc được dữ liệu cục bộ.';}};
  try{recordVisit(article);}catch{status.textContent='Không lưu được lịch sử trên thiết bị.';}
  for(const button of el.querySelectorAll('[data-library-action]'))button.addEventListener('click',()=>{try{toggleEntry(button.dataset.libraryAction,article);status.textContent='Đã cập nhật thư viện.';render();}catch{status.textContent='Không lưu được thay đổi.';}});
- window.addEventListener('philosophia-library-change',render);window.addEventListener('storage',render);window.addEventListener('pageshow',render);render();
+ window.addEventListener('philosophia-library-change',render);window.addEventListener('storage',render);window.addEventListener('pageshow',e=>{if(e.persisted){try{recordVisit(article);}catch{} }render();});render();
 }
 </script>
