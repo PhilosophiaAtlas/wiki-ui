@@ -138,3 +138,12 @@ article:after{content:'';display:block;clear:both}
 .related-articles small{display:block;color:var(--sub)}
 @media(max-width:700px){.library-row{align-items:flex-start}.library-row-actions{justify-content:flex-end}}
 @media print{.personal-tools,.related-articles{display:none!important}}
+
+/* Media viewer and source revision comparison */
+.media-thumbnail{cursor:zoom-in;display:inline-block;height:auto}
+#media-viewer{width:min(1100px,calc(100vw - 1rem));max-width:none;max-height:95dvh;overflow:auto;padding:1rem;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:5px}
+#media-viewer::backdrop{background:#000c}.media-bar{display:flex;align-items:center;flex-wrap:wrap;gap:.6rem;justify-content:space-between}.media-bar h2{margin:0;border:0;font-size:1.25rem}.media-bar button{min-height:44px}
+#media-stage{display:grid;place-items:center;overflow:auto;max-height:65dvh;background:#161616;margin:.65rem 0}#media-full{max-height:65dvh;width:auto;max-width:100%;object-fit:contain}#media-stage.zoomed{display:block}#media-stage.zoomed #media-full{max-width:none;max-height:none;width:200%;object-fit:initial}#media-caption{font-size:.9rem;overflow-wrap:anywhere}
+.revision-list li{padding:.4rem 0}.revision-controls{display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end;margin:1rem 0}.revision-controls label{display:grid;gap:.2rem;flex:1 1 180px}.revision-controls select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);padding:.4rem;max-width:100%;min-height:44px}.revision-controls button{min-height:44px}
+.revision-output{border:1px solid var(--line);font: .86rem/1.55 ui-monospace,monospace;overflow:auto}.revision-output:empty{display:none}.diff-line{display:grid;grid-template-columns:6rem minmax(0,1fr);padding:.2rem .45rem;gap:.5rem;white-space:pre-wrap;overflow-wrap:anywhere}.diff-number{color:var(--sub);user-select:none;text-align:right}.diff-add{background:#daf0db;color:#164b24}.diff-remove{background:#fce0dd;color:#6b201e}.revision-output pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+@media(max-width:700px){#media-viewer{padding:.65rem}.diff-line{grid-template-columns:4.5rem minmax(0,1fr);gap:.3rem;font-size:.8rem}}@media print{#media-viewer,.revision-controls{display:none!important}}

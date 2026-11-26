@@ -1,0 +1,34 @@
+---
+const {id,revisions,limited}=Astro.props;
+---
+<p class="meta">Lịch sử từ Git, tính đến phiên bản đang xuất bản. So sánh văn bản nguồn Markdown, kể cả thông tin đầu bài. Không chỉnh sửa hay khôi phục tự động tại đây.</p>
+{limited&&<p>Chỉ hiển thị phần lịch sử còn nằm trong giới hạn truy xuất.</p>}
+<ol class="revision-list">{revisions.map((r,i)=><li><time datetime={r.date}>{r.date.slice(0,10)} {r.date.slice(11,16)} UTC</time> · <code>{r.sha.slice(0,12)}</code> {i===0&&<strong> (Mới nhất)</strong>}</li>)}</ol>
+{!revisions.length&&<p>Chưa có phiên bản khả dụng.</p>}
+{revisions.length>0&&<div id="history-controls" data-id={id} hidden>
+<div class="revision-controls"><label>Phiên bản cũ<select id="revision-old">{revisions.map((r,i)=><option value={r.sha} selected={i===Math.min(1,revisions.length-1)}>{r.date.slice(0,10)} · {r.sha.slice(0,8)}</option>)}</select></label><label>Phiên bản mới<select id="revision-new">{revisions.map((r,i)=><option value={r.sha} selected={i===0}>{r.date.slice(0,10)} · {r.sha.slice(0,8)}</option>)}</select></label><button id="revision-compare" type="button">So sánh</button><button id="revision-view" type="button">Xem nguồn bản mới</button></div>
+<label><input type="checkbox" id="revision-context"/> Chỉ hiện dòng thay đổi</label>
+<p id="revision-status" role="status"></p><div id="revision-output" class="revision-output"></div>
+</div>}
+<noscript><p>Cần JavaScript để xem và so sánh nội dung phiên bản.</p></noscript>
+<script>
+import {diffLines} from './revision-diff.mjs';
+const root=document.getElementById('history-controls');
+if(root){
+ const old=document.getElementById('revision-old'),newer=document.getElementById('revision-new'),out=document.getElementById('revision-output'),status=document.getElementById('revision-status'),context=document.getElementById('revision-context');
+ let cache,sequence=0,mode='diff';
+ async function data(){try{cache??=fetch('/history-data/'+root.dataset.id+'.json').then(r=>{if(!r.ok)throw Error();return r.json();});return await cache;}catch(e){cache=undefined;throw e;}}
+ async function render(){const n=++sequence;status.textContent='Đang tải phiên bản…';out.replaceChildren();try{
+ const rows=await data();if(n!==sequence)return;
+ const a=rows.find(r=>r.sha===old.value),b=rows.find(r=>r.sha===newer.value);if(!b||(mode==='diff'&&!a))throw Error();
+ if(mode==='source'){const pre=document.createElement('pre');pre.textContent=b.source;out.append(pre);status.textContent='Nguồn phiên bản '+b.sha.slice(0,12);return;}
+ const d=diffLines(a.source,b.source);status.textContent='+'+d.added+' dòng / −'+d.removed+' dòng'+(d.coarse?' · So sánh giản lược do văn bản dài.':'')+(!d.added&&!d.removed?' · Không có khác biệt.':'');
+ let l=0,r=0;const fragment=document.createDocumentFragment();
+ for(const row of d.rows){if(row.kind!=='add')l++;if(row.kind!=='remove')r++;if(context.checked&&row.kind==='same')continue;
+ const line=document.createElement('div'),num=document.createElement('span'),body=document.createElement('span');line.className='diff-line diff-'+row.kind;num.className='diff-number';num.textContent=(row.kind==='add'?'':l)+' | '+(row.kind==='remove'?'':r);body.textContent=({same:'  ',add:'+ ',remove:'− '})[row.kind]+row.text;line.append(num,body);fragment.append(line);}
+ out.append(fragment);
+ }catch{if(n===sequence)status.textContent='Không tải hoặc so sánh được phiên bản. Hãy thử lại.';}}
+ document.getElementById('revision-compare').addEventListener('click',()=>{mode='diff';render();});document.getElementById('revision-view').addEventListener('click',()=>{mode='source';render();});context.addEventListener('change',()=>{if(mode==='diff')render();});
+ root.hidden=false;
+}
+</script>
