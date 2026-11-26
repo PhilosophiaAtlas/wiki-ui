@@ -76,3 +76,26 @@ article h2:has(.section-toggle){display:flex;align-items:center;gap:.2rem}
 @media(min-width:701px){.article-page aside details{max-height:calc(100vh - 3rem);overflow-y:auto;padding-right:.3rem}}
 @media(max-width:700px){.section-toggle{min-width:44px;min-height:44px;margin-right:.1rem}.article-page article h2{font-size:1.35rem}}
 @media print{.reading-toolbar,.reading-progress,.back-to-top,.section-toggle{display:none!important}.wiki-section-content[hidden]{display:block!important}}
+
+/* Search suggestions, infobox and references */
+.header-search{position:relative}
+.search-suggestions{position:absolute;top:calc(100% + 3px);left:0;right:0;z-index:24;border:1px solid var(--line);background:var(--bg);box-shadow:0 4px 12px #0002;border-radius:3px;max-height:55dvh;overflow:auto}
+.search-suggestions ul{margin:0;padding:0;list-style:none}
+.search-suggestions li a{display:block;padding:.55rem .7rem;border-bottom:1px solid var(--line);color:var(--text)}
+.search-suggestions li[aria-selected=true],.search-suggestions li:hover{background:var(--panel)}
+.search-suggestions small{display:block;color:var(--sub);font-size:.8rem}
+#suggestion-all{display:block;padding:.65rem}
+.infobox{width: min(100%,290px);float:right;clear:right;margin:0 0 1rem 1.25rem;border:1px solid var(--line);border-collapse:collapse;background:var(--panel);font-size:.9rem}
+.infobox caption{background:var(--panel);border:1px solid var(--line);border-bottom:0;padding:.65rem;font-weight:700}
+.infobox th,.infobox td{text-align:left;vertical-align:top;padding:.45rem .6rem;border-top:1px solid var(--line)}
+.infobox th{width:39%}
+article:after{content:'';display:block;clear:both}
+.citation{font-size:.72em;line-height:0;white-space:nowrap}
+.references{font-size:.9em;overflow-wrap:anywhere}
+.references li{margin:.4rem 0;scroll-margin-top:1rem}
+.reference-backlinks{white-space:nowrap}
+#reference-preview{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:1.25rem;max-width:min(460px,calc(100vw - 2rem));width:100%;max-height:80dvh;overflow:auto}
+#reference-preview::backdrop{background:#0008}
+#reference-preview h2{margin-top:.4rem;padding-right:3rem;font-size:1.45rem}
+@media(max-width:700px){.infobox{float:none;width:100%;margin:.75rem 0 1rem}#reference-preview{position:fixed;inset:auto 0 0;margin:0;width:100%;max-width:none;max-height:65dvh;border-radius:12px 12px 0 0;padding:1.2rem 1.2rem calc(1.2rem + env(safe-area-inset-bottom));border-bottom:0}}
+@media print{#reference-preview,.search-suggestions{display:none!important}}
